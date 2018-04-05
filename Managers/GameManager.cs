@@ -21,7 +21,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        ColorCount = 3;
+        ColorCount = 4;
         baseTile = TilesManager.CreateNewTile( baseTilePos );
         board = FindObjectOfType<GameBoard>();
         Camera.main.backgroundColor = Globals.BACKGROUND;
@@ -29,6 +29,6 @@ public class GameManager : MonoBehaviour
 
     public static void CheckSlot( BoardSlot slot )
     {
-        board.CheckSlot(slot);
+        board.StartCheck( slot );
     }
 }

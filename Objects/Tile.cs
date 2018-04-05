@@ -4,29 +4,25 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
-    public TileData data;
+    public BoardSlot owner;
+    public TileParts parts;
 
-    public SpriteRenderer leftRend;
-    public SpriteRenderer rightRend;
-
-    private bool rotated;
+    private bool rotating;
     private Vector3 targetRotation;
 
-    public Tile( TileData newData )
+    public void Init()
     {
-        SetTileData(newData);
-    }
+        parts._up       = Instantiate(TilesManager.partPrefab, transform.position + new Vector3(0, 0.24f, 0), Quaternion.Euler(0f, 0f, 180f));
+        parts._up.Init(this, Types.TileDirection.UP, (Types.TileType)Random.Range( 0, GameManager.ColorCount ));
 
-    public void SetTileData( TileData newData )
-    {
-        data = newData;
-        leftRend.color = data.leftColor;
-        rightRend.color = data.rightColor;
-    }
+        parts._right    = Instantiate(TilesManager.partPrefab, transform.position + new Vector3(0.24f, 0, 0), Quaternion.Euler(0f, 0f, 90f));
+        parts._right.Init(this, Types.TileDirection.RIGHT, (Types.TileType)Random.Range(0, GameManager.ColorCount));
 
-    public TileData GetTileData()
-    {
-        return data;
+        parts._down     = Instantiate(TilesManager.partPrefab, transform.position + new Vector3(0, -0.24f, 0), Quaternion.Euler(0f, 0f, 0));
+        parts._down.Init(this, Types.TileDirection.DOWN, (Types.TileType)Random.Range(0, GameManager.ColorCount));
+
+        parts._left     = Instantiate(TilesManager.partPrefab, transform.position + new Vector3(-0.24f, 0, 0), Quaternion.Euler(0f, 0f, -90));
+        parts._left.Init(this, Types.TileDirection.LEFT, (Types.TileType)Random.Range(0, GameManager.ColorCount));
     }
 
     public void DestroyTile()
@@ -34,20 +30,38 @@ public class Tile : MonoBehaviour
         Destroy(gameObject);
     }
 
-    public void Rotate()
+    public TileParts GetData()
     {
-        targetRotation = (!rotated) ? new Vector3(0, 0, GameConsts.ROTATION_FINAL) : new Vector3( 0, 0, 0 );
-
-        StartCoroutine( StartRotation( targetRotation, GameConsts.ROTATION_TIME ) );
-        rotated = !rotated;
-        ReverseType();
+        return parts;
     }
 
-    private void ReverseType()
+    public void Rotate()
     {
-        Types.TileType temp = data.leftType;
-        data.leftType = data.rightType;
-        data.rightType = temp;
+        if (!rotating)
+        {
+            rotating = true;
+            targetRotation = transform.rotation.eulerAngles + new Vector3(0, 0, GameConsts.ROTATION_FINAL);
+
+            StartCoroutine(StartRotation(targetRotation, GameConsts.ROTATION_TIME));
+            ChangeTypesClockwise();
+        }
+    }
+
+    private void ChangeTypesClockwise()
+    {
+        TileSinglePart tempPart = parts._up;
+
+        parts._up = parts._left;
+        parts._up._direction = Types.TileDirection.UP;
+
+        parts._left = parts._down;
+        parts._left._direction = Types.TileDirection.LEFT;
+
+        parts._down = parts._right;
+        parts._down._direction = Types.TileDirection.DOWN;
+
+        parts._right = tempPart;
+        parts._right._direction = Types.TileDirection.RIGHT;
     }
 
     IEnumerator StartRotation( Vector3 targetRot, float time )
@@ -64,30 +78,30 @@ public class Tile : MonoBehaviour
             transform.rotation = Quaternion.Slerp(startingRotation, targetRotation, (elapsedTime / time));
             yield return new WaitForEndOfFrame();
         }
+
+        rotating = false;
+        GameManager.CheckSlot(transform.parent.GetComponent<BoardSlot>());
     }
 }
 
-public struct TileData
+public struct TileParts
 {
-    // Left Side
-    public Types.TileType leftType;
-    public Color leftColor;
+    public TileSinglePart _up;
+    public TileSinglePart _right;
+    public TileSinglePart _down;
+    public TileSinglePart _left;
 
-    // Right Side
-    public Types.TileType rightType;
-    public Color rightColor;
-
-    public TileData( Types.TileType lType, Types.TileType rType )
+    public TileSinglePart GetPartFromDir( Types.TileDirection dir )
     {
-        leftType = lType;
-        leftColor = TypesManager.GetColor(lType);
+        List<TileSinglePart> parts = new List<TileSinglePart> { _up, _right, _down, _left };
+        foreach( TileSinglePart part in parts )
+        {
+            if( part._direction == dir )
+            {
+                return part;
+            }
+        }
 
-        rightType = rType;
-        rightColor = TypesManager.GetColor(rType);
-    }
-
-    public bool IsSolid()
-    {
-        return (leftType == rightType) ? true : false;
+        return null;        
     }
 }

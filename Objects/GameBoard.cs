@@ -60,100 +60,29 @@ public class GameBoard : MonoBehaviour
         }
     }
 
-    public void CheckSlot(BoardSlot slot)
+    private BoardSlot GetSlotByDirection(BoardSlot curSlot, Types.TileDirection dir)
     {
-        BoardSlot leftSlot, rightSlot;
-        leftSlot = GetSlot(slot.colPos - 1, slot.rowPos);
-        rightSlot = GetSlot(slot.colPos + 1, slot.rowPos);
-
-        TileData checkedTileData = slot.GetTile().GetTileData();
-
-        if ( leftSlot && rightSlot )
+        BoardSlot newSlot;
+        switch (dir)
         {
-            if (leftSlot.IsOccupied() && rightSlot.IsOccupied())
-            {
-                TileData leftTileData = leftSlot.GetTile().GetTileData();
-                TileData rightTileData = rightSlot.GetTile().GetTileData();                
-
-                if (leftTileData.rightType == checkedTileData.leftType && rightTileData.leftType == checkedTileData.rightType)
-                {
-                    Debug.Log("Match found! Slot emptied!");
-                    RotateAdjacentSlots( slot, Types.TileCheck.VERTICAL );
-                    RotateAdjacentSlots(slot, Types.TileCheck.HORIZONTAL);
-
-                    slot.GetTile().DestroyTile();
-                }
-            }
-        }
-        else if( !leftSlot && rightSlot )
-        {
-            TileData rightTileData = rightSlot.GetTile().GetTileData();
-
-            if (rightTileData.leftType == checkedTileData.rightType && checkedTileData.leftType == leftBorder.bType)
-            {
-                RotateAdjacentSlots(slot, Types.TileCheck.VERTICAL);
-                RotateAdjacentSlots(slot, Types.TileCheck.HORIZONTAL);
-                slot.GetTile().DestroyTile();
-            }
-        }
-        else if( leftSlot && !rightSlot )
-        {
-            TileData leftTileData = leftSlot.GetTile().GetTileData();
-
-            if( leftTileData.rightType == checkedTileData.leftType && checkedTileData.rightType == rightBorder.bType )
-            {
-                RotateAdjacentSlots(slot, Types.TileCheck.VERTICAL);
-                RotateAdjacentSlots(slot, Types.TileCheck.HORIZONTAL);
-                slot.GetTile().DestroyTile();
-            }
-        }
-
-        ChangeBorderColors();
-    }
-
-    private void ChangeBorderColors()
-    {
-        leftBorder.Recolor();
-        rightBorder.Recolor();
-    }
-
-    private void RotateAdjacentSlots(BoardSlot slot, Types.TileCheck checkType)
-    {
-        BoardSlot one, two;
-
-        switch (checkType)
-        {
-            case Types.TileCheck.HORIZONTAL:
-                one = GetSlot(slot.colPos - 1, slot.rowPos);
-                two = GetSlot(slot.colPos + 1, slot.rowPos);
+            case Types.TileDirection.UP:
+                newSlot = GetSlot(curSlot.colPos, curSlot.rowPos + 1);
                 break;
-            case Types.TileCheck.VERTICAL:
-                one = GetSlot(slot.colPos, slot.rowPos + 1);
-                two = GetSlot(slot.colPos, slot.rowPos - 1);
+            case Types.TileDirection.RIGHT:
+                newSlot = GetSlot(curSlot.colPos + 1, curSlot.rowPos);
+                break;
+            case Types.TileDirection.DOWN:
+                newSlot = GetSlot(curSlot.colPos, curSlot.rowPos - 1);
+                break;
+            case Types.TileDirection.LEFT:
+                newSlot = GetSlot(curSlot.colPos - 1, curSlot.rowPos);
                 break;
             default:
-                one = two = null;
+                newSlot = null;
                 break;
         }
 
-        if( one && one.IsOccupied() )
-        {
-            if( one.GetTile().GetTileData().IsSolid() )
-            {
-                one.GetTile().DestroyTile();
-            }
-
-            one.GetTile().Rotate();
-        }
-
-        if( two && two.IsOccupied() )
-        {
-            if (two.GetTile().GetTileData().IsSolid())
-            {
-                two.GetTile().DestroyTile();
-            }
-            two.GetTile().Rotate();
-        }
+        return newSlot;
     }
 
     public void ClearBoard()
@@ -170,4 +99,72 @@ public class GameBoard : MonoBehaviour
             }
         }
     }
+
+    public void StartCheck( BoardSlot slot )
+    {
+        List<TileSinglePart> collectedParts = new List<TileSinglePart>();
+        CheckTile( slot.GetTile(), Types.TileDirection.UP, ref collectedParts );
+    }
+
+    public void CheckTile(Tile tile, Types.TileDirection direction, ref List<TileSinglePart> collectedParts )
+    {
+        TileParts allParts = tile.GetData();
+
+        List<Types.TileDirection> directions = Globals.GetFullDirectionCircle( direction ); // UP is always a default starting point
+
+        foreach( Types.TileDirection dir in directions )
+        {
+            TileSinglePart singlePart = allParts.GetPartFromDir(dir);
+
+            LookForType(tile, singlePart, singlePart._type, ref collectedParts);
+
+            DoStuffWithParts(ref collectedParts);
+        }
+    }
+
+    private void LookForType( Tile tile, TileSinglePart singlePart, Types.TileType type, ref List<TileSinglePart> collectedParts )
+    {
+        List<Types.TileDirection> directions = Globals.GetFullDirectionCircle(singlePart._direction);
+        TileSinglePart tempPart;
+
+        foreach( Types.TileDirection dir in directions )
+        {
+            tempPart = tile.GetData().GetPartFromDir(dir);
+            if( tempPart._type == type && !collectedParts.Contains( singlePart )/*Lacking adjancet type implementation*/ )
+            {
+                // Add to list
+                collectedParts.Add(tempPart);
+                CheckNeighbourTile(tile, type, dir, ref collectedParts);
+            }
+        }
+    }
+
+    private void CheckNeighbourTile( Tile tileToCheck, Types.TileType type, Types.TileDirection direction, ref List<TileSinglePart> collectedParts )
+    {
+        BoardSlot tempSlot = GetSlotByDirection( tileToCheck.owner, direction);
+        if( tempSlot && tempSlot.IsOccupied() )
+        {
+            CheckTile(tempSlot.tileInSlot, TilesManager.MirrorDirection( direction ), ref collectedParts );
+        }
+    }
+
+    private void DoStuffWithParts( ref List<TileSinglePart> parts )
+    {
+        if (parts.Count > 1)
+        {
+            foreach (TileSinglePart part in parts)
+            {
+                part.TEST_FUNC();
+            }
+        }
+
+        parts.Clear();
+    }
+
+    public void DEBUG_TEST1()
+    {
+        ClearBoard();
+    }
 }
+
+

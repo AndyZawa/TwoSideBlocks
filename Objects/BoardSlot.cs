@@ -35,8 +35,7 @@ public class BoardSlot : MonoBehaviour
         }
         else
         {
-            GameManager.CheckSlot( this );
-            //tileInSlot.Rotate();
+            tileInSlot.Rotate();
         }
     }
 

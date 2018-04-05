@@ -17,4 +17,12 @@ public class Types
         VERTICAL,
         HORIZONTAL
     }
+
+    public enum TileDirection
+    {
+        UP,
+        RIGHT,
+        DOWN,
+        LEFT
+    }
 }

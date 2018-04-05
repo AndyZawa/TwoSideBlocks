@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Globals
 {
@@ -28,5 +29,44 @@ public class Globals
         byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
         byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
         return new Color32(r, g, b, 255);
+    }
+
+    public static List< Types.TileDirection > GetFullDirectionCircle( Types.TileDirection startingDir )
+    {
+        List<Types.TileDirection> dirList = new List<Types.TileDirection>();
+
+        int dirCount = System.Enum.GetValues(typeof(Types.TileDirection)).Length;
+        int i = (int)startingDir;
+
+        while( dirList.Count != dirCount )
+        {
+            if( !dirList.Contains( (Types.TileDirection)i ) )
+            {
+                dirList.Add((Types.TileDirection)i);
+            }
+
+            if ( i + 1 >= dirCount )
+            {
+                i = 0;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return dirList;
+    }
+
+    public static Types.TileDirection GetNextDirection(Types.TileDirection current)
+    {
+        if( (int)current >= System.Enum.GetValues( typeof(Types.TileDirection) ).Length )
+        {
+            return (Types.TileDirection)0;
+        }
+        else
+        {
+            return (Types.TileDirection)((int)current + 1);
+        }
     }
 }
