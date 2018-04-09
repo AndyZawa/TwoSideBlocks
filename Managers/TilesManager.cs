@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -66,6 +67,11 @@ public class TilesManager : MonoBehaviour
         }
     }
 
+    public static TileSinglePart GetMirroredPart( Tile tileToCheck, Types.TileType type, Types.TileDirection dir )
+    {
+        return tileToCheck.GetData().GetPartFromDir(MirrorDirection(dir));
+    }
+
     // CHECK ARE THE TYPES SAME WITHIN SAME TILE
     public static bool AreTypesSame( TileParts parts, Types.TileDirection first, Types.TileDirection second)
     {
@@ -73,10 +79,10 @@ public class TilesManager : MonoBehaviour
     }
 
     // CHECK IF TYPES FOR PARTS ARE SAME IN TWO DIFFERENT TILES
-    public static bool AreTypesSame( BoardSlot firstSlot, BoardSlot secondSlot, Types.TileDirection direction )
+    public static bool AreTypesSame( Tile firstTile, Tile secondTile, Types.TileDirection direction )
     {
-        TileParts firstData = firstSlot.GetTile().GetData();
-        TileParts secondData = secondSlot.GetTile().GetData();
+        TileParts firstData = firstTile.GetData();
+        TileParts secondData = secondTile.GetData();
         bool ret = (firstData.GetPartFromDir(direction)._type == secondData.GetPartFromDir(MirrorDirection(direction))._type);
         return ret;
     }
@@ -90,5 +96,12 @@ public class TilesManager : MonoBehaviour
     public static void SetDataBeenChecked( BoardSlot slot, Types.TileDirection dir, bool value )
     {
         slot.GetTile().GetData().GetPartFromDir( dir )._beenChecked = value;
+    }
+
+    public static bool CanMoveToPart( Tile tileToCheck, TileSinglePart currentPart, Types.TileDirection tempDir)
+    {
+        bool result = AreAdjacent(currentPart._direction, tempDir);
+
+        return result;
     }
 }
