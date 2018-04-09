@@ -104,4 +104,12 @@ public struct TileParts
 
         return null;        
     }
+
+    public void ListAllParts( ref List<TileSinglePart> partsListed )
+    {
+        partsListed.Add(_up);
+        partsListed.Add(_right);
+        partsListed.Add(_down);
+        partsListed.Add(_left);
+    }
 }

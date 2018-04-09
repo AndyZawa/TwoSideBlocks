@@ -103,51 +103,53 @@ public class GameBoard : MonoBehaviour
     public void StartCheck( BoardSlot slot )
     {
         List<TileSinglePart> collectedParts = new List<TileSinglePart>();
-        TileParts parts = slot.GetTile().GetData();
+
+        List<TileSinglePart> allParts = new List<TileSinglePart>();
+        slot.GetTile().GetData().ListAllParts(ref allParts);
+
+        foreach (TileSinglePart part in allParts)
+        {
+            collectedParts.Add(part);
+            CheckPart(slot.GetTile(), part, part._type, ref collectedParts);
+            DoStuffWithParts(ref collectedParts);
+        }
     }
 
-    private void CheckPart(Tile currentTile, TileSinglePart currentPart, Types.TileType typeToCheck)
+
+
+    private void CheckPart(Tile currentTile, TileSinglePart currentPart, Types.TileType typeToCheck, ref List<TileSinglePart> collectedParts )
     {
+        BoardSlot tempSlot;
         Tile tempTile;
         TileSinglePart tempPart;
-        Types.TileDirection tempDir;
 
-        // CAN GO UP
-        tempDir = Types.TileDirection.UP;
-        tempPart = currentTile.GetData().GetPartFromDir( tempDir );
-        if( tempPart && tempPart._type == typeToCheck /*&& !list.Contains(this) */&& TilesManager.AreAdjacent( currentPart._direction, tempDir ) )
+        List<Types.TileDirection> directions = new List<Types.TileDirection>();
+        directions = Globals.GetFullDirectionCircle(Types.TileDirection.UP);
+
+        foreach( Types.TileDirection dir in directions )
         {
-            // Add to list and start check from that
-            CheckPart(currentTile, tempPart, typeToCheck);
-        }
+            tempPart = currentTile.GetData().GetPartFromDir(dir);
+            if (tempPart && tempPart._type == typeToCheck && !collectedParts.Contains(tempPart) && TilesManager.AreAdjacent(currentPart._direction, dir))
+            {
+                collectedParts.Add(tempPart);
+                CheckPart(currentTile, tempPart, typeToCheck, ref collectedParts);
+            }
 
-        tempTile = GetSlotByDirection(currentTile.owner, currentPart._direction).GetTile();
-        if( tempTile && CanGoToNeighbour( currentTile, tempTile, typeToCheck, currentPart._direction ) )
-        {
-            tempPart = TilesManager.GetMirroredPart(tempTile, typeToCheck, currentPart._direction);
-            //if( !list.Contains( tempPart ) )
-            CheckPart( tempTile, tempPart, typeToCheck );
+            tempSlot = GetSlotByDirection(currentTile.owner, currentPart._direction);
+            if (tempSlot && tempSlot.IsOccupied())
+            {
+                tempTile = tempSlot.GetTile();
+                if (tempTile && CanGoToNeighbour(currentTile, tempTile, typeToCheck, currentPart._direction))
+                {
+                    tempPart = TilesManager.GetMirroredPart(tempTile, typeToCheck, currentPart._direction);
+                    if (!collectedParts.Contains(tempPart))
+                    {
+                        collectedParts.Add(tempPart);
+                        CheckPart(tempTile, tempPart, typeToCheck, ref collectedParts);
+                    }
+                }
+            }
         }
-
-
-        // CAN GO RIGHT
-        tempDir = Types.TileDirection.RIGHT;
-        tempPart = currentTile.GetData().GetPartFromDir(tempDir);
-        if (tempPart && tempPart._type == typeToCheck /*&& !list.Contains(this) */&& TilesManager.AreAdjacent(currentPart._direction, tempDir))
-        {
-            // Add to list and start check from that
-            CheckPart(currentTile, tempPart, typeToCheck);
-        }
-
-        tempTile = GetSlotByDirection(currentTile.owner, currentPart._direction).GetTile();
-        if (tempTile && CanGoToNeighbour(currentTile, tempTile, typeToCheck, currentPart._direction))
-        {
-            tempPart = TilesManager.GetMirroredPart(tempTile, typeToCheck, currentPart._direction);
-            //if( !list.Contains( tempPart ) )
-            CheckPart(tempTile, tempPart, typeToCheck);
-        }
-        // CAN GO DOWN
-        // CAN GO LEFT
     }
 
     private bool CanGoToNeighbour( Tile curTile, Tile tileToCheck, Types.TileType typeToCheck, Types.TileDirection direction )
